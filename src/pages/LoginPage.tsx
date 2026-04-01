@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGuestContext } from '../context/GuestContext'
+import { supabase } from '../lib/supabase'
 
 /**
  * Entry screen — guest types their name to join the game.
@@ -14,40 +15,52 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
-      await login(name)
-      navigate('/questions')
+      const guest = await login(name)
+      const { count } = await supabase
+        .from('submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('guest_id', guest.id)
+      navigate(count && count > 0 ? '/results' : '/questions')
     } catch {
       // error is already surfaced via context
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8 space-y-6">
-        <div className="text-center space-y-1">
-          <h1 className="text-3xl font-bold text-gray-800">💍 Wedding Game</h1>
-          <p className="text-gray-500 text-sm">Enter your name to make your predictions!</p>
+    <div className="min-h-screen bg-gradient-to-br from-pastel-pink-100 via-white to-pastel-green-100 flex items-center justify-center p-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-pastel-pink-200 p-8 w-full max-w-md text-center">
+        <div className="mb-6">
+          <div className="mb-2">
+            <span className="text-5xl">💍</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mt-3">Pick Your Side of the Aisle</h1>
+          <p className="text-gray-600 mt-2 text-sm">
+            Make your predictions and see how they stack up against other guests!
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            disabled={loading}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-400"
-          />
-
-          {error && (
-            <p className="text-red-500 text-sm">{error.message}</p>
-          )}
+          <div className="text-left">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Your Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              required
+              disabled={loading}
+              className="w-full border-2 border-pastel-pink-300 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pastel-pink-400 focus:border-transparent transition"
+            />
+            {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
+          </div>
 
           <button
             type="submit"
             disabled={loading || !name.trim()}
-            className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-2 transition-colors"
+            className="w-full bg-gradient-to-r from-pastel-pink-400 to-pastel-green-400 hover:from-pastel-pink-500 hover:to-pastel-green-500 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition shadow-md"
           >
             {loading ? 'Loading…' : "Let's Play!"}
           </button>

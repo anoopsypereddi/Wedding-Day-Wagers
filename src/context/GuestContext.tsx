@@ -10,7 +10,7 @@ interface GuestContextValue {
   /** Any error from the last login attempt. */
   error: Error | null
   /** Look up or register a guest by name and store them in context. */
-  login: (name: string) => Promise<void>
+  login: (name: string) => Promise<Guest>
   /** Clear the current guest (e.g. "change name" flow). */
   logout: () => void
 }
@@ -31,10 +31,11 @@ export function GuestProvider({ children }: { children: ReactNode }) {
   const { findOrCreateGuest, loading, error } = useGuest()
 
   const login = useCallback(
-    async (name: string) => {
+    async (name: string): Promise<Guest> => {
       const found = await findOrCreateGuest(name)
       setGuest(found)
       sessionStorage.setItem('wedding_guest', JSON.stringify(found))
+      return found
     },
     [findOrCreateGuest],
   )
@@ -52,6 +53,7 @@ export function GuestProvider({ children }: { children: ReactNode }) {
 }
 
 /** Access the current guest session from any component. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGuestContext(): GuestContextValue {
   const ctx = useContext(GuestContext)
   if (!ctx) throw new Error('useGuestContext must be used inside <GuestProvider>')

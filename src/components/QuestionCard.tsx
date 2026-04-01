@@ -14,8 +14,12 @@ export default function QuestionCard({
   disabled = false,
 }: QuestionCardProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 w-full">
-      <p className="text-xs font-medium text-pink-500 uppercase tracking-wide mb-1">
+    <div className="bg-white rounded-2xl shadow-md border border-pastel-pink-200 p-6 w-full relative overflow-hidden">
+      {/* Subtle decorative flower */}
+      <div className="absolute top-2 right-3 text-lg opacity-30">🌸</div>
+
+      <p className="text-xs font-medium text-pastel-green-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+        <span className="text-xs">🌿</span>
         {question.category}
       </p>
       <h2 className="text-lg font-semibold text-gray-800 mb-4">{question.text}</h2>
@@ -31,8 +35,8 @@ export default function QuestionCard({
               className={[
                 'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition',
                 isSelected
-                  ? 'border-pink-500 bg-pink-50 text-pink-700'
-                  : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-pink-300 hover:bg-pink-50',
+                  ? 'border-pastel-pink-400 bg-pastel-pink-100 text-pastel-pink-600'
+                  : 'border-pastel-green-200 bg-pastel-green-50 text-gray-700 hover:border-pastel-pink-300 hover:bg-pastel-pink-50',
                 disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
               ].join(' ')}
             >
