@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# Wedding Gambling Game
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Guests predict outcomes for the wedding, see how their answers compare to everyone else's, and find out who was right after the ceremony.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React + TypeScript + Vite, Tailwind CSS, Supabase (auth, DB), React Router
 
-## React Compiler
+## Guest flow
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Enter name → new guests go to questions, returning guests go to results
+2. Answer all questions → submit
+3. Results page shows donut charts with vote breakdowns
+4. "Edit answers" available until locked
 
-## Expanding the ESLint configuration
+## Admin (`/admin`)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Manage questions, mark correct answers, view submissions, leaderboard
+- **Lock** page: set a deadline after which guests can't change answers
+- Editing also locks automatically once any correct answer is revealed
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Supabase tables
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+`guests`, `questions`, `submissions`, `game_settings`
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sql
+-- game_settings (one row)
+create table game_settings (
+  id int primary key default 1,
+  lock_at timestamptz,
+  constraint single_row check (id = 1)
+);
+insert into game_settings (id) values (1) on conflict do nothing;
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Dev
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+cp .env.example .env.local  # add Supabase URL + anon key
+npm run dev
+npm test
 ```
