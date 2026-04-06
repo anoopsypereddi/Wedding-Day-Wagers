@@ -32,7 +32,12 @@ export default function QuestionsPage() {
   // Redirect to results once we know the game is locked or answers have been revealed
   const answersRevealed =
     !qLoading &&
-    questions.some((q) => q.correctAnswerIndex >= 0 && q.correctAnswerIndex < q.options.length)
+    questions.some(
+      (q) =>
+        q.correctAnswerIndex != null &&
+        q.correctAnswerIndex >= 0 &&
+        q.correctAnswerIndex < q.options.length,
+    )
 
   useEffect(() => {
     if (!lockLoading && !qLoading && (isLocked || answersRevealed)) {
