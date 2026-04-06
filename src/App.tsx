@@ -4,6 +4,7 @@ import { AdminProvider } from './contexts/AdminContext'
 import LoginPage from './pages/LoginPage'
 import QuestionsPage from './pages/QuestionsPage'
 import ResultsPage from './pages/ResultsPage'
+import LeaderboardPage from './pages/LeaderboardPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute'
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/" element={<LoginPage />} />
             <Route path="/questions" element={<QuestionsPage />} />
             <Route path="/results" element={<ResultsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
 
             {/* Admin routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />

@@ -103,17 +103,25 @@ export default function ResultsPage() {
             </h1>
             <p className="text-gray-600 text-sm">See how everyone voted, {guest.name}!</p>
           </div>
-          {!editingLocked && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/questions', { state: { initialAnswers: Object.fromEntries(myAnswers) } })}
+              onClick={() => navigate('/leaderboard')}
               className="text-sm text-pastel-pink-500 hover:text-pastel-pink-600 underline"
             >
-              Edit answers
+              🏆 Leaderboard
             </button>
-          )}
-          {editingLocked && (
-            <span className="text-xs text-gray-400 flex items-center gap-1">🔒 Locked</span>
-          )}
+            {!editingLocked && (
+              <button
+                onClick={() => navigate('/questions', { state: { initialAnswers: Object.fromEntries(myAnswers) } })}
+                className="text-sm text-pastel-pink-500 hover:text-pastel-pink-600 underline"
+              >
+                Edit answers
+              </button>
+            )}
+            {editingLocked && (
+              <span className="text-xs text-gray-400 flex items-center gap-1">🔒 Locked</span>
+            )}
+          </div>
         </div>
 
         {questions.map((q, idx) => {
