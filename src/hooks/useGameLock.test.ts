@@ -36,6 +36,31 @@ describe('useGameLock', () => {
     expect(result.current.isLocked).toBe(true)
   })
 
+  it('is loading and unlocked before the initial fetch resolves', async () => {
+    const { result } = renderHook(() => useGameLock())
+    // loading is set to true synchronously on mount, before the fetch resolves
+    expect(result.current.loading).toBe(true)
+    expect(result.current.isLocked).toBe(false)
+    await waitFor(() => expect(result.current.loading).toBe(false))
+  })
+
+  it('exposes an error and stays unlocked when the database call fails', async () => {
+    server.use(
+      http.get('*/rest/v1/game_settings*', () =>
+        HttpResponse.json(
+          { message: 'relation "game_settings" does not exist' },
+          { status: 404 }
+        )
+      )
+    )
+
+    const { result } = renderHook(() => useGameLock())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.error).toBeInstanceOf(Error)
+    expect(result.current.isLocked).toBe(false)
+  })
+
   it('flips to locked when the deadline passes', async () => {
     // Set the deadline ~100ms away so the real 1-second interval catches it quickly
     const future = new Date(Date.now() + 100).toISOString()
