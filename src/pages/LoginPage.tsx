@@ -33,7 +33,7 @@ export default function LoginPage() {
           <div className="mb-2">
             <span className="text-5xl">💍</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mt-3">Pick Your Side of the Aisle</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mt-3">Wedding Wagers</h1>
           <p className="text-gray-600 mt-2 text-sm">
             Make your predictions and see how they stack up against other guests!
           </p>
