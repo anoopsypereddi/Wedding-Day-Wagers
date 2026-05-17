@@ -55,8 +55,35 @@ export default function QuestionManager() {
 
   function openAdd() {
     setEditingId(null)
-    setForm({ ...EMPTY_FORM, displayOrder: questions.length + 1 })
+    const maxOrder = questions.reduce((m, q) => Math.max(m, q.displayOrder), 0)
+    setForm({ ...EMPTY_FORM, displayOrder: maxOrder + 1 })
     setModalOpen(true)
+  }
+
+  async function moveQuestion(index: number, direction: -1 | 1) {
+    const target = index + direction
+    if (target < 0 || target >= questions.length) return
+
+    // Reorder visually, then renumber 1..N — this also dedupes any prior collisions
+    const reordered = [...questions]
+    const [moved] = reordered.splice(index, 1)
+    reordered.splice(target, 0, moved)
+    const renumbered = reordered.map((q, i) => ({ ...q, displayOrder: i + 1 }))
+    const prevOrderById = new Map(questions.map(q => [q.id, q.displayOrder]))
+    const updates = renumbered.filter(q => prevOrderById.get(q.id) !== q.displayOrder)
+
+    setQuestions(renumbered) // optimistic
+
+    const results = await Promise.all(
+      updates.map(q =>
+        supabase.from('questions').update({ display_order: q.displayOrder }).eq('id', q.id)
+      )
+    )
+    const firstErr = results.find(r => r.error)?.error
+    if (firstErr) {
+      alert(`Reorder failed: ${firstErr.message}`)
+      fetchQuestions()
+    }
   }
 
   function openEdit(q: Question) {
@@ -190,6 +217,22 @@ export default function QuestionManager() {
             {/* Action buttons — full width row below content */}
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                 <button
+                  onClick={() => moveQuestion(i, -1)}
+                  disabled={i === 0}
+                  className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => moveQuestion(i, 1)}
+                  disabled={i === questions.length - 1}
+                  className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Move down"
+                >
+                  ↓
+                </button>
+                <button
                   onClick={() => toggleActive(q)}
                   className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
                 >
@@ -313,27 +356,16 @@ export default function QuestionManager() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="text-xs font-medium text-gray-500 mb-1 block">Display Order</label>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
-                    type="number"
-                    value={form.displayOrder}
-                    onChange={e => setForm(f => ({ ...f, displayOrder: parseInt(e.target.value) || 0 }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                    className="w-4 h-4 accent-rose-500"
                   />
-                </div>
-                <div className="flex items-end pb-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.isActive}
-                      onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
-                      className="w-4 h-4 accent-rose-500"
-                    />
-                    <span className="text-sm text-gray-600">Active</span>
-                  </label>
-                </div>
+                  <span className="text-sm text-gray-600">Active</span>
+                </label>
               </div>
             </div>
 
