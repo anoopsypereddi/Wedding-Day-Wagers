@@ -5,26 +5,25 @@ import { useSubmission } from './useSubmission'
 import { GUEST, SUBMISSIONS } from '../test/handlers'
 
 const GUEST_ID = GUEST.id
-const ANSWERS = { q1: 0, q2: 2 }
 
 describe('useSubmission', () => {
   it('starts in idle state', () => {
     const { result } = renderHook(() => useSubmission())
-    expect(result.current.loading).toBe(false)
+    expect(result.current.savingId).toBeNull()
     expect(result.current.error).toBeNull()
   })
 
-  it('returns true on a happy-path batch submit', async () => {
+  it('returns true on a happy-path upsert', async () => {
     const { result } = renderHook(() => useSubmission())
     let ok = false
     await act(async () => {
-      ok = await result.current.submitAnswers(GUEST_ID, ANSWERS)
+      ok = await result.current.upsertAnswer(GUEST_ID, 'q1', 0)
     })
     expect(ok).toBe(true)
     expect(result.current.error).toBeNull()
   })
 
-  it('sends one row per answer with the right fields', async () => {
+  it('sends a single row with the right fields', async () => {
     let body: unknown
     server.use(
       http.post('*/rest/v1/submissions*', async ({ request }) => {
@@ -35,36 +34,13 @@ describe('useSubmission', () => {
 
     const { result } = renderHook(() => useSubmission())
     await act(async () => {
-      await result.current.submitAnswers(GUEST_ID, { q1: 0, q2: 2 })
+      await result.current.upsertAnswer(GUEST_ID, 'q1', 2)
     })
 
-    expect(body).toEqual(
-      expect.arrayContaining([
-        { guest_id: GUEST_ID, question_id: 'q1', selected_option_index: 0 },
-        { guest_id: GUEST_ID, question_id: 'q2', selected_option_index: 2 },
-      ]),
-    )
+    expect(body).toEqual({ guest_id: GUEST_ID, question_id: 'q1', selected_option_index: 2 })
   })
 
-  it('skips the request entirely when no answers are passed', async () => {
-    let upsertCalled = false
-    server.use(
-      http.post('*/rest/v1/submissions*', () => {
-        upsertCalled = true
-        return HttpResponse.json([])
-      }),
-    )
-
-    const { result } = renderHook(() => useSubmission())
-    let ok = false
-    await act(async () => {
-      ok = await result.current.submitAnswers(GUEST_ID, {})
-    })
-    expect(ok).toBe(true)
-    expect(upsertCalled).toBe(false)
-  })
-
-  it('tracks loading while the upsert is in-flight', async () => {
+  it('tracks savingId while the upsert is in-flight', async () => {
     let resolveUpsert!: () => void
     server.use(
       http.post(
@@ -78,12 +54,12 @@ describe('useSubmission', () => {
 
     const { result } = renderHook(() => useSubmission())
     act(() => {
-      void result.current.submitAnswers(GUEST_ID, ANSWERS)
+      void result.current.upsertAnswer(GUEST_ID, 'q1', 0)
     })
 
-    await waitFor(() => expect(result.current.loading).toBe(true))
+    await waitFor(() => expect(result.current.savingId).toBe('q1'))
     await act(async () => resolveUpsert())
-    expect(result.current.loading).toBe(false)
+    expect(result.current.savingId).toBeNull()
   })
 
   it('returns false and sets error on upsert failure', async () => {
@@ -96,7 +72,7 @@ describe('useSubmission', () => {
     const { result } = renderHook(() => useSubmission())
     let ok = true
     await act(async () => {
-      ok = await result.current.submitAnswers(GUEST_ID, ANSWERS)
+      ok = await result.current.upsertAnswer(GUEST_ID, 'q1', 0)
     })
 
     expect(ok).toBe(false)
@@ -112,7 +88,7 @@ describe('useSubmission', () => {
 
     const { result } = renderHook(() => useSubmission())
     await act(async () => {
-      await result.current.submitAnswers(GUEST_ID, ANSWERS)
+      await result.current.upsertAnswer(GUEST_ID, 'q1', 0)
     })
     expect(result.current.error).not.toBeNull()
 
@@ -120,7 +96,7 @@ describe('useSubmission', () => {
       http.post('*/rest/v1/submissions*', () => HttpResponse.json(SUBMISSIONS)),
     )
     await act(async () => {
-      await result.current.submitAnswers(GUEST_ID, ANSWERS)
+      await result.current.upsertAnswer(GUEST_ID, 'q1', 0)
     })
     expect(result.current.error).toBeNull()
   })

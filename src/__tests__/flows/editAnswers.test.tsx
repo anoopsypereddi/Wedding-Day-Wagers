@@ -5,7 +5,7 @@ import { server } from '../../test/server'
 import { renderApp } from '../../test/renderApp'
 import { GUEST, SUBMISSIONS } from '../../test/handlers'
 
-describe('Edit answer flow', () => {
+describe('Edit answer flow (autosave)', () => {
   beforeEach(() => {
     server.use(
       http.get('*/rest/v1/guests*', () => HttpResponse.json([GUEST])),
@@ -13,7 +13,7 @@ describe('Edit answer flow', () => {
     )
   })
 
-  it('writes only the changed pick when a returning guest submits', async () => {
+  it('autosaves immediately when a returning guest changes a pick', async () => {
     const upsertSpy = vi.fn()
     server.use(
       http.post('*/rest/v1/submissions*', async ({ request }) => {
@@ -27,19 +27,36 @@ describe('Edit answer flow', () => {
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
     await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
 
-    // Change q1 from Bride (0) to Groom (1). q2 stays at its server value.
+    // Change q1 from Bride (0) to Groom (1)
     await userEvent.click(screen.getByText('Groom'))
-
-    expect(upsertSpy).not.toHaveBeenCalled()
-    await userEvent.click(screen.getByRole('button', { name: /submit 1 pick/i }))
 
     await waitFor(() => expect(upsertSpy).toHaveBeenCalled())
     const body = upsertSpy.mock.calls[0][0] as {
       question_id: string
       selected_option_index: number
-    }[]
-    expect(body).toHaveLength(1)
-    expect(body[0].question_id).toBe('q1')
-    expect(body[0].selected_option_index).toBe(1)
+    }
+    expect(body.question_id).toBe('q1')
+    expect(body.selected_option_index).toBe(1)
+  })
+
+  it('does not re-upsert when clicking the already-selected option', async () => {
+    const upsertSpy = vi.fn()
+    server.use(
+      http.post('*/rest/v1/submissions*', async ({ request }) => {
+        upsertSpy(await request.json())
+        return HttpResponse.json(SUBMISSIONS)
+      }),
+    )
+
+    renderApp('/')
+    await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
+    await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
+    await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
+
+    // q1's server value is 0 (Bride) — clicking Bride again should be a no-op
+    await userEvent.click(screen.getByText('Bride'))
+    // Give any pending request a moment
+    await new Promise((r) => setTimeout(r, 50))
+    expect(upsertSpy).not.toHaveBeenCalled()
   })
 })

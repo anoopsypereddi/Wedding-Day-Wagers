@@ -2,56 +2,54 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface UseSubmissionResult {
-  submitAnswers: (
+  upsertAnswer: (
     guestId: string,
-    answers: Record<string, number>
+    questionId: string,
+    selectedOptionIndex: number
   ) => Promise<boolean>;
-  loading: boolean;
+  savingId: string | null;
   error: Error | null;
 }
 
 /**
- * Batch-upserts the guest's picks. Pass only the picks the user has
- * changed since the last submit; the server upserts on the
- * (guest_id, question_id) unique pair.
+ * Writes a single guest answer. Returns true on success, false otherwise
+ * (e.g. the question was locked between fetch and submit, so the trigger rejects it).
  *
- * Returns true on success. The submissions trigger rejects writes against
- * locked questions — filter those out client-side before calling.
+ * `savingId` is the question id currently in flight, useful for per-card spinners.
  */
 export function useSubmission(): UseSubmissionResult {
-  const [loading, setLoading] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
-  const submitAnswers = async (
+  const upsertAnswer = async (
     guestId: string,
-    answers: Record<string, number>
+    questionId: string,
+    selectedOptionIndex: number
   ): Promise<boolean> => {
-    setLoading(true);
+    setSavingId(questionId);
     setError(null);
 
     try {
-      const rows = Object.entries(answers).map(([questionId, selectedIndex]) => ({
-        guest_id: guestId,
-        question_id: questionId,
-        selected_option_index: selectedIndex,
-      }));
-
-      if (rows.length === 0) return true;
-
       const { error: upsertError } = await supabase
         .from('submissions')
-        .upsert(rows, { onConflict: 'guest_id,question_id', ignoreDuplicates: false });
+        .upsert(
+          {
+            guest_id: guestId,
+            question_id: questionId,
+            selected_option_index: selectedOptionIndex,
+          },
+          { onConflict: 'guest_id,question_id', ignoreDuplicates: false },
+        );
 
       if (upsertError) throw new Error(upsertError.message);
-
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to submit answers'));
+      setError(err instanceof Error ? err : new Error('Failed to save answer'));
       return false;
     } finally {
-      setLoading(false);
+      setSavingId(null);
     }
   };
 
-  return { submitAnswers, loading, error };
+  return { upsertAnswer, savingId, error };
 }
