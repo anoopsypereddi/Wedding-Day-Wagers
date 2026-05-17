@@ -1,11 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGuestContext } from '../context/GuestContext'
-import { supabase } from '../lib/supabase'
 
 /**
  * Entry screen — guest types their name to join the game.
- * On success they are redirected to the questions page.
  */
 export default function LoginPage() {
   const [name, setName] = useState('')
@@ -15,12 +13,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
-      const guest = await login(name)
-      const { count } = await supabase
-        .from('submissions')
-        .select('id', { count: 'exact', head: true })
-        .eq('guest_id', guest.id)
-      navigate(count && count > 0 ? '/results' : '/questions')
+      await login(name)
+      navigate('/game')
     } catch {
       // error is already surfaced via context
     }

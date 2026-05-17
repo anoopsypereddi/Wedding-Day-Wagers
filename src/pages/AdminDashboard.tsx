@@ -4,10 +4,9 @@ import { useAdminContext } from '../contexts/AdminContext'
 const navLinks = [
   { to: '/admin', label: 'Overview', icon: '📊', end: true },
   { to: '/admin/questions', label: 'Questions', icon: '❓', end: false },
+  { to: '/admin/game', label: 'Game Control', icon: '🎲', end: false },
   { to: '/admin/submissions', label: 'Submissions', icon: '📋', end: false },
-  { to: '/admin/answers', label: 'Mark Answers', icon: '✅', end: false },
   { to: '/admin/leaderboard', label: 'Leaderboard', icon: '🏆', end: false },
-  { to: '/admin/lock', label: 'Lock', icon: '🔒', end: false },
 ]
 
 export default function AdminDashboard() {

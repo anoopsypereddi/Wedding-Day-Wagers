@@ -12,7 +12,8 @@ export const QUESTIONS = [
     text: 'Who will cry first?',
     options: ['Bride', 'Groom', 'Both', 'Neither'],
     category: 'Ceremony',
-    correct_answer_index: -1,
+    correct_answer_index: null,
+    locked_at: null,
     display_order: 1,
     is_active: true,
   },
@@ -21,7 +22,8 @@ export const QUESTIONS = [
     text: 'How long will the first dance be?',
     options: ['Under 3 min', '3–5 min', 'Over 5 min'],
     category: 'Reception',
-    correct_answer_index: -1,
+    correct_answer_index: null,
+    locked_at: null,
     display_order: 2,
     is_active: true,
   },
@@ -37,11 +39,6 @@ export const SUBMISSIONS = [
 // ---------------------------------------------------------------------------
 
 export const handlers = [
-  // game_settings — unlocked by default
-  http.get('*/rest/v1/game_settings*', () =>
-    HttpResponse.json([{ id: 1, lock_at: null }])
-  ),
-
   // guests — no existing guest by default (triggers create path)
   http.get('*/rest/v1/guests*', () => HttpResponse.json([])),
 
@@ -53,26 +50,22 @@ export const handlers = [
 
   // questions
   http.get('*/rest/v1/questions*', () => HttpResponse.json(QUESTIONS)),
+  http.patch('*/rest/v1/questions*', () => HttpResponse.json(QUESTIONS)),
 
   // submissions — GET (all stats + guest-specific)
-  http.get('*/rest/v1/submissions*', ({ request }) => {
-    const url = new URL(request.url)
-    // count-only head request from LoginPage
-    if (request.method === 'HEAD' || request.headers.get('Prefer')?.includes('count')) {
-      return new HttpResponse(null, {
-        headers: { 'Content-Range': '0-1/2' },
-      })
-    }
-    const guestFilter = url.searchParams.get('guest_id')
-    if (guestFilter) return HttpResponse.json(SUBMISSIONS)
-    return HttpResponse.json(SUBMISSIONS)
-  }),
+  http.get('*/rest/v1/submissions*', () => HttpResponse.json(SUBMISSIONS)),
 
   // submission upsert
   http.post('*/rest/v1/submissions*', () => HttpResponse.json(SUBMISSIONS)),
 
-  // HEAD count query from LoginPage — default: 0 submissions (new guest)
-  http.head('*/rest/v1/submissions*', () =>
-    new HttpResponse(null, { headers: { 'Content-Range': '*/0' } })
+  // get_question_stats RPC — default: no responses
+  http.post('*/rest/v1/rpc/get_question_stats', () =>
+    HttpResponse.json(
+      QUESTIONS.map((q) => ({
+        question_id: q.id,
+        option_counts: q.options.map(() => 0),
+        total_responses: 0,
+      })),
+    ),
   ),
 ]

@@ -119,10 +119,10 @@ export default function AdminOverview() {
             Manage Questions →
           </Link>
           <Link
-            to="/admin/answers"
+            to="/admin/game"
             className="px-4 py-2 bg-rose-100 text-rose-700 rounded-lg text-sm font-medium hover:bg-rose-200 transition-colors"
           >
-            Mark Correct Answers →
+            Game Control →
           </Link>
           <Link
             to="/admin/leaderboard"

@@ -3,7 +3,8 @@ export interface Question {
   text: string
   options: string[]
   category: string
-  correctAnswerIndex: number
+  correctAnswerIndex: number | null
+  lockedAt: string | null
   displayOrder: number
   isActive: boolean
 }

@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Question } from '../types';
+
+interface UseQuestionsOptions {
+  pollMs?: number
+  includeInactive?: boolean
+}
 
 interface UseQuestionsResult {
   questions: Question[];
@@ -9,52 +14,67 @@ interface UseQuestionsResult {
   refetch: () => void;
 }
 
+type Row = {
+  id: string
+  text: string
+  options: string[]
+  category: string
+  correct_answer_index: number | null
+  locked_at: string | null
+  display_order: number
+  is_active: boolean
+}
+
+function mapRow(row: Row): Question {
+  return {
+    id: row.id,
+    text: row.text,
+    options: row.options,
+    category: row.category,
+    correctAnswerIndex: row.correct_answer_index,
+    lockedAt: row.locked_at,
+    displayOrder: row.display_order,
+    isActive: row.is_active,
+  }
+}
+
 /**
- * Fetches all active questions ordered by display_order.
- *
- * @example
- * const { questions, loading, error, refetch } = useQuestions();
+ * Fetches questions ordered by display_order. Polls every `pollMs` (default 30s)
+ * so guests see lock/reveal state changes without a manual refresh.
  */
-export function useQuestions(): UseQuestionsResult {
+export function useQuestions(options: UseQuestionsOptions = {}): UseQuestionsResult {
+  const { pollMs = 30000, includeInactive = false } = options
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const firstLoadRef = useRef(true)
 
   const fetchQuestions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const { data, error: dbError } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      let query = supabase.from('questions').select('*').order('display_order', { ascending: true })
+      if (!includeInactive) query = query.eq('is_active', true)
+      const { data, error: dbError } = await query
 
       if (dbError) throw new Error(dbError.message);
 
-      // Map snake_case DB columns → camelCase Question type
-      const mapped: Question[] = (data ?? []).map((row: Record<string, unknown>) => ({
-        id: row.id as string,
-        text: row.text as string,
-        options: row.options as string[],
-        category: row.category as string,
-        correctAnswerIndex: row.correct_answer_index as number,
-        displayOrder: row.display_order as number,
-        isActive: row.is_active as boolean,
-      }))
-
-      setQuestions(mapped);
+      setQuestions((data ?? []).map((r) => mapRow(r as Row)));
+      setError(null)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch questions'));
     } finally {
-      setLoading(false);
+      if (firstLoadRef.current) {
+        setLoading(false)
+        firstLoadRef.current = false
+      }
     }
-  }, []);
+  }, [includeInactive]);
 
   useEffect(() => {
     fetchQuestions();
-  }, [fetchQuestions]);
+    if (pollMs <= 0) return
+    const id = setInterval(fetchQuestions, pollMs)
+    return () => clearInterval(id)
+  }, [fetchQuestions, pollMs]);
 
   return { questions, loading, error, refetch: fetchQuestions };
 }

@@ -3,31 +3,18 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../test/server'
 import { useResults } from './useResults'
 
-const QUESTIONS_STUB = [
-  { id: 'q1', options: ['A', 'B', 'C'], is_active: true },
-  { id: 'q2', options: ['X', 'Y'], is_active: true },
-]
-
 describe('useResults', () => {
-  beforeEach(() => {
+  it('maps RPC stats rows to QuestionStats with computed percentages', async () => {
     server.use(
-      http.get('*/rest/v1/questions*', () => HttpResponse.json(QUESTIONS_STUB))
-    )
-  })
-
-  it('computes percentages correctly', async () => {
-    // 2 votes for q1-A, 1 vote for q1-B → 66.67% / 33.33%
-    server.use(
-      http.get('*/rest/v1/submissions*', () =>
+      http.post('*/rest/v1/rpc/get_question_stats', () =>
         HttpResponse.json([
-          { question_id: 'q1', selected_option_index: 0 },
-          { question_id: 'q1', selected_option_index: 0 },
-          { question_id: 'q1', selected_option_index: 1 },
-        ])
-      )
+          { question_id: 'q1', option_counts: [2, 1, 0], total_responses: 3 },
+          { question_id: 'q2', option_counts: [0, 0], total_responses: 0 },
+        ]),
+      ),
     )
 
-    const { result } = renderHook(() => useResults(null))
+    const { result } = renderHook(() => useResults(null, { pollMs: 0 }))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const q1 = result.current.stats.find((s) => s.questionId === 'q1')!
@@ -40,10 +27,14 @@ describe('useResults', () => {
 
   it('handles zero total responses without NaN', async () => {
     server.use(
-      http.get('*/rest/v1/submissions*', () => HttpResponse.json([]))
+      http.post('*/rest/v1/rpc/get_question_stats', () =>
+        HttpResponse.json([
+          { question_id: 'q1', option_counts: [0, 0, 0], total_responses: 0 },
+        ]),
+      ),
     )
 
-    const { result } = renderHook(() => useResults(null))
+    const { result } = renderHook(() => useResults(null, { pollMs: 0 }))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     for (const stat of result.current.stats) {
@@ -54,7 +45,7 @@ describe('useResults', () => {
     }
   })
 
-  it('maps snake_case DB columns to camelCase Submission type', async () => {
+  it('maps snake_case submission columns to camelCase', async () => {
     server.use(
       http.get('*/rest/v1/submissions*', () =>
         HttpResponse.json([
@@ -65,11 +56,11 @@ describe('useResults', () => {
             selected_option_index: 0,
             created_at: '2024-01-01T00:00:00Z',
           },
-        ])
-      )
+        ]),
+      ),
     )
 
-    const { result } = renderHook(() => useResults('guest-1'))
+    const { result } = renderHook(() => useResults('guest-1', { pollMs: 0 }))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const sub = result.current.guestSubmissions[0]
@@ -80,10 +71,7 @@ describe('useResults', () => {
   })
 
   it('leaves guestSubmissions empty when guestId is null', async () => {
-    server.use(
-      http.get('*/rest/v1/submissions*', () => HttpResponse.json([]))
-    )
-    const { result } = renderHook(() => useResults(null))
+    const { result } = renderHook(() => useResults(null, { pollMs: 0 }))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.guestSubmissions).toEqual([])
   })

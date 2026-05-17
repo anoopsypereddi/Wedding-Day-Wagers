@@ -41,7 +41,8 @@ export default function QuestionManager() {
       text: row.text as string,
       options: row.options as string[],
       category: row.category as string,
-      correctAnswerIndex: row.correct_answer_index as number,
+      correctAnswerIndex: row.correct_answer_index as number | null,
+      lockedAt: row.locked_at as string | null,
       displayOrder: row.display_order as number,
       isActive: row.is_active as boolean,
     }))

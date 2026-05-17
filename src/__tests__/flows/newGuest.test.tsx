@@ -3,63 +3,68 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../test/server'
 import { renderApp } from '../../test/renderApp'
+import { SUBMISSIONS } from '../../test/handlers'
 
 describe('New guest flow', () => {
   function setupNewGuest() {
     server.use(
-      http.get('*/rest/v1/submissions*', ({ request }) => {
-        if (request.headers.get('Prefer')?.includes('count')) {
-          return new HttpResponse(null, { headers: { 'Content-Range': '0-0/0' } })
-        }
-        return HttpResponse.json([])
-      })
+      http.get('*/rest/v1/submissions*', () => HttpResponse.json([])),
     )
   }
 
-  it('routes to /questions after a first-time login', async () => {
+  it('routes to /game after login and shows all open questions', async () => {
     setupNewGuest()
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
-    await waitFor(() =>
-      expect(screen.getByText(/make your predictions/i)).toBeInTheDocument()
-    )
-  })
 
-  it('shows all questions on the questions page', async () => {
-    setupNewGuest()
-    renderApp('/')
-    await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
-    await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
     await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
     expect(screen.getByText(/How long will the first dance/)).toBeInTheDocument()
+    expect(screen.getByText(/Wedding Wagers/)).toBeInTheDocument()
   })
 
-  it('submit button is disabled until all questions are answered', async () => {
+  it('submit button stays disabled until a pick is made', async () => {
     setupNewGuest()
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
     await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
 
-    const submit = screen.getByRole('button', { name: /0 \/ 2 answered/i })
-    expect(submit).toBeDisabled()
-
-    await userEvent.click(screen.getByText('Bride'))
-    expect(screen.getByRole('button', { name: /1 \/ 2 answered/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /all picks saved/i })).toBeDisabled()
   })
 
-  it('navigates to /results after submitting all answers', async () => {
+  it('batches picks into a single submit request', async () => {
     setupNewGuest()
+    const upsertSpy = vi.fn()
+    server.use(
+      http.post('*/rest/v1/submissions*', async ({ request }) => {
+        upsertSpy(await request.json())
+        return HttpResponse.json(SUBMISSIONS)
+      }),
+    )
+
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
     await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
 
-    await userEvent.click(screen.getByText('Bride'))
+    // Make two picks locally — no network calls yet
+    await userEvent.click(screen.getByText('Groom'))
     await userEvent.click(screen.getByText('Under 3 min'))
-    await userEvent.click(screen.getByRole('button', { name: /submit predictions/i }))
+    expect(upsertSpy).not.toHaveBeenCalled()
 
-    await waitFor(() => expect(screen.getByText(/results/i)).toBeInTheDocument())
+    // Submit — one batched call
+    await userEvent.click(screen.getByRole('button', { name: /submit 2 picks/i }))
+    await waitFor(() => expect(upsertSpy).toHaveBeenCalledTimes(1))
+    const body = upsertSpy.mock.calls[0][0] as {
+      question_id: string
+      selected_option_index: number
+    }[]
+    expect(body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ question_id: 'q1', selected_option_index: 1 }),
+        expect.objectContaining({ question_id: 'q2', selected_option_index: 0 }),
+      ]),
+    )
   })
 })

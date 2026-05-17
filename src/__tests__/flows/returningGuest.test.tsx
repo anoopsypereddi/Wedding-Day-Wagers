@@ -10,26 +10,18 @@ describe('Returning guest flow', () => {
     server.use(
       http.get('*/rest/v1/guests*', () => HttpResponse.json([GUEST])),
       http.get('*/rest/v1/submissions*', () => HttpResponse.json(SUBMISSIONS)),
-      http.head('*/rest/v1/submissions*', () =>
-        new HttpResponse(null, { headers: { 'Content-Range': '0-1/2' } })
-      )
     )
   })
 
-  it('routes directly to /results skipping /questions', async () => {
+  it('lands on /game and pre-selects existing picks on open cards', async () => {
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
-    await waitFor(() => expect(screen.getByText(/results/i)).toBeInTheDocument())
-    expect(screen.queryByText(/make your predictions/i)).not.toBeInTheDocument()
-  })
 
-  it('shows the Edit answers button when game is not locked', async () => {
-    renderApp('/')
-    await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
-    await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /edit answers/i })).toBeInTheDocument()
-    )
+    await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
+
+    // SUBMISSIONS has q1 = 0 (Bride). The Bride button should carry the pink-pick class.
+    const brideButton = screen.getByText('Bride').closest('button')!
+    expect(brideButton.className).toMatch(/pink/)
   })
 })
