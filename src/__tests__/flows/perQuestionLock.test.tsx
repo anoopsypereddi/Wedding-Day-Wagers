@@ -20,6 +20,7 @@ describe('Per-question lock', () => {
 
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '555-123-4567')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
 
     await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
@@ -44,6 +45,7 @@ describe('Per-question lock', () => {
 
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '555-123-4567')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
 
     await waitFor(() => expect(screen.getByText(/Who will cry first/)).toBeInTheDocument())
@@ -61,6 +63,7 @@ describe('Per-question lock', () => {
 
     renderApp('/')
     await userEvent.type(await screen.findByPlaceholderText(/your name/i), 'Alice')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '555-123-4567')
     await userEvent.click(screen.getByRole('button', { name: /let's play/i }))
     await waitFor(() => expect(screen.getByText(/Wedding Wagers/)).toBeInTheDocument())
   })

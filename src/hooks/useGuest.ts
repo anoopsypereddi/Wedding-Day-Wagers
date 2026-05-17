@@ -3,60 +3,59 @@ import { supabase } from '../lib/supabase';
 import type { Guest } from '../types';
 
 interface UseGuestResult {
-  findOrCreateGuest: (name: string) => Promise<Guest>;
+  findOrCreateGuest: (name: string, phone: string) => Promise<Guest>;
   loading: boolean;
   error: Error | null;
 }
 
+/** Digits-only form of a phone number — used as the uniqueness key. */
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D+/g, '');
+}
+
 /**
- * Provides a function that looks up a guest by name (case-insensitive)
- * and creates one if they don't exist yet.
- *
- * The returned guest object can be stored in component or context state
- * to identify the current user throughout the session.
- *
- * @example
- * const { findOrCreateGuest, loading, error } = useGuest();
- * const guest = await findOrCreateGuest('Alice');
+ * Provides a function that looks up a guest by phone (digits-only) and
+ * creates one if they don't exist yet. Phone is the unique identifier so
+ * two guests can share the same display name.
  */
 export function useGuest(): UseGuestResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const findOrCreateGuest = async (name: string): Promise<Guest> => {
+  const findOrCreateGuest = async (name: string, phone: string): Promise<Guest> => {
     const trimmedName = name.trim();
+    const normalized = normalizePhone(phone);
     if (!trimmedName) throw new Error('Guest name cannot be empty');
+    if (normalized.length < 7) throw new Error('Please enter a valid phone number');
 
     setLoading(true);
     setError(null);
 
     try {
-      // Look up by lower-cased name to match the case-insensitive unique index
+      // Look up by digits-only phone (matches the unique index).
       const { data: existing, error: lookupError } = await supabase
         .from('guests')
         .select('*')
-        .ilike('name', trimmedName)
+        .eq('phone', normalized)
         .maybeSingle();
 
       if (lookupError) throw new Error(lookupError.message);
 
       if (existing) return existing as Guest;
 
-      // Guest not found — create a new record
       const { data: created, error: insertError } = await supabase
         .from('guests')
-        .insert({ name: trimmedName })
+        .insert({ name: trimmedName, phone: normalized })
         .select()
         .single();
 
       if (insertError) {
-        // Handle the rare race condition where another request inserted the same
-        // name between our SELECT and INSERT (unique constraint violation).
+        // Race: another request inserted the same phone between SELECT and INSERT.
         if (insertError.code === '23505') {
           const { data: retry, error: retryError } = await supabase
             .from('guests')
             .select('*')
-            .ilike('name', trimmedName)
+            .eq('phone', normalized)
             .maybeSingle();
 
           if (retryError) throw new Error(retryError.message);

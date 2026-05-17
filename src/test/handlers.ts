@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw'
 // Shared fixture data
 // ---------------------------------------------------------------------------
 
-export const GUEST = { id: 'guest-1', name: 'Alice' }
+export const GUEST = { id: 'guest-1', name: 'Alice', phone: '5551234567' }
 
 export const QUESTIONS = [
   {

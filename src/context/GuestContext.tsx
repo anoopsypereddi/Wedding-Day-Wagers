@@ -9,8 +9,8 @@ interface GuestContextValue {
   loading: boolean
   /** Any error from the last login attempt. */
   error: Error | null
-  /** Look up or register a guest by name and store them in context. */
-  login: (name: string) => Promise<Guest>
+  /** Look up or register a guest by phone (with display name) and store them in context. */
+  login: (name: string, phone: string) => Promise<Guest>
   /** Clear the current guest (e.g. "change name" flow). */
   logout: () => void
 }
@@ -31,8 +31,8 @@ export function GuestProvider({ children }: { children: ReactNode }) {
   const { findOrCreateGuest, loading, error } = useGuest()
 
   const login = useCallback(
-    async (name: string): Promise<Guest> => {
-      const found = await findOrCreateGuest(name)
+    async (name: string, phone: string): Promise<Guest> => {
+      const found = await findOrCreateGuest(name, phone)
       setGuest(found)
       sessionStorage.setItem('wedding_guest', JSON.stringify(found))
       return found
