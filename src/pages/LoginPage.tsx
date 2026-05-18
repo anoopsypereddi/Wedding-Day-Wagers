@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGuestContext } from '../context/GuestContext'
+import logo from '../assets/logo.png'
 
 /**
  * Entry screen — guest enters their name + phone to join the game.
@@ -25,9 +26,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-pastel-pink-100 via-white to-pastel-green-100 flex items-center justify-center p-4">
       <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-pastel-pink-200 p-8 w-full max-w-md text-center">
         <div className="mb-6">
-          <div className="mb-2">
-            <span className="text-5xl">💍</span>
-          </div>
+          <img src={logo} alt="Wedding Wagers" className="mx-auto h-24 w-24 object-contain" />
           <h1 className="text-3xl font-bold text-gray-800 mt-3">Wedding Wagers</h1>
           <p className="text-gray-600 mt-2 text-sm">
             Make your predictions and see how they stack up against other guests!

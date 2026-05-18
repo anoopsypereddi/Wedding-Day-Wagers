@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAdminContext } from '../contexts/AdminContext'
+import logo from '../assets/logo.png'
 
 const navLinks = [
   { to: '/admin', label: 'Overview', icon: '📊', end: true },
@@ -22,9 +23,12 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-56 bg-white shadow-sm flex-col shrink-0">
-        <div className="p-5 border-b border-gray-100">
-          <h1 className="text-lg font-bold text-gray-800">💍 Admin Panel</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Wedding Game</p>
+        <div className="p-5 border-b border-gray-100 flex items-center gap-2">
+          <img src={logo} alt="" className="h-8 w-8 object-contain shrink-0" />
+          <div>
+            <h1 className="text-lg font-bold text-gray-800">Admin Panel</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Wedding Game</p>
+          </div>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -67,7 +71,10 @@ export default function AdminDashboard() {
 
       {/* ── Mobile top bar ── */}
       <header className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shrink-0">
-        <h1 className="text-base font-bold text-gray-800">💍 Admin</h1>
+        <div className="flex items-center gap-2">
+          <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
+          <h1 className="text-base font-bold text-gray-800">Admin</h1>
+        </div>
         <div className="flex items-center gap-2">
           <NavLink
             to="/"

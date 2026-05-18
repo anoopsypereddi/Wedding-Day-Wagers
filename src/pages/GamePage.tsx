@@ -5,6 +5,7 @@ import { useQuestions } from '../hooks/useQuestions'
 import { useResults } from '../hooks/useResults'
 import { useSubmission } from '../hooks/useSubmission'
 import QuestionCard from '../components/QuestionCard'
+import logo from '../assets/logo.png'
 
 /**
  * Unified game feed. Each question renders as a single card that flips through
@@ -83,9 +84,12 @@ export default function GamePage() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Wedding Wagers</h1>
-            <p className="text-gray-600 text-sm">Hi {guest.name}! Tap an option to place your bet.</p>
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="" className="h-10 w-10 object-contain shrink-0" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">Wedding Wagers</h1>
+              <p className="text-gray-600 text-sm">Hi {guest.name}! Tap an option to place your bet.</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button
